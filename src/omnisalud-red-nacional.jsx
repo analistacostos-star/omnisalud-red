@@ -2309,6 +2309,10 @@ const PORTAFOLIO = [
   { ciudad: "YOPAL", codigo: "OPTO-2", servicio: "VISIOMETRIA OCUPACIONAL", precio: 34250 }
 ];
 
+// Redondeo al múltiplo de 50 más cercano
+const redondear50 = (n) => Math.floor(n / 50) * 50;
+PORTAFOLIO.forEach(r => { r.precio = redondear50(r.precio); });
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const normalize = (str) =>
   str
