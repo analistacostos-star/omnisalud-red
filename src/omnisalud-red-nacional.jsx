@@ -216,7 +216,7 @@ export default function App() {
 
   const tabsDef = [
     ["buscar", <><IconConsult size={16} /> Consultar</>],
-    ["ajustes", <><IconSettings size={16} /> Ajustes</>],
+    // ["ajustes", <><IconSettings size={16} /> Ajustes</>],
   ];
 
   return (
