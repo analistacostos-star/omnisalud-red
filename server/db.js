@@ -7,13 +7,19 @@ dotenv.config();
 function loadPEM(envKey) {
   const v = process.env[envKey];
   if (!v) return undefined;
-  if (v.includes("-----BEGIN")) return v;
-  try {
-    return fs.readFileSync(v, "utf8");
-  } catch (err) {
-    console.warn(`Could not read file for ${envKey} at ${v}: ${err.message}`);
-    return undefined;
+  let content;
+  if (v.includes("-----BEGIN")) {
+    content = v;
+  } else {
+    try {
+      content = fs.readFileSync(v, "utf8");
+    } catch (err) {
+      console.warn(`Could not read file for ${envKey} at ${v}: ${err.message}`);
+      return undefined;
+    }
   }
+  if (!content.endsWith("\n")) content += "\n";
+  return content;
 }
 
 const sslKey = loadPEM("DB_SSL_KEY");
