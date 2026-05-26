@@ -144,20 +144,6 @@ function StatBadge({ label, value, color, variant }) {
   );
 }
 
-// --- Menu badge item with description ---
-function MenuBadge({ label, value, description, color }) {
-  return (
-    <div className="badge-touch" style={{
-      background: "rgba(255,255,255,0.08)", padding: "12px 16px", borderRadius: 10,
-      border: "1px solid rgba(255,255,255,0.1)", marginBottom: 8,
-    }}>
-      <div style={{ fontSize: 16, fontWeight: 800, color: color || "#fff" }}>{value}</div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{description}</div>
-    </div>
-  );
-}
-
 function SortControls({ handleSortAlpha, handleSortPrice, sortAlpha, sortPrice, onlyInactive, setOnlyInactive, vertical }) {
   return (
     <div style={{ display: "flex", gap: 8, flexDirection: vertical ? "column" : "row" }}>
@@ -547,29 +533,6 @@ export default function App() {
                   width: "100%", textAlign: "left",
                 }}>{label}</button>
               ))}
-            </div>
-
-            {/* Extra badges in menu */}
-            <div style={{ marginTop: 12 }}>
-              <MenuBadge
-                label={`Servicios en ${currentCiudadLabel}`}
-                value={servicesInCity.toLocaleString()}
-                description="Servicios disponibles en la ubicación actual"
-              />
-              <MenuBadge
-                label="Ciudades"
-                value={totalCiudades}
-                description="Total ciudades cubiertas"
-                color="#1aab8a"
-              />
-              {rol === "admin" && (
-                <MenuBadge
-                  label="Inactivos"
-                  value={totalInactivos.toLocaleString()}
-                  description="Servicios inactivos en el sistema"
-                  color="#ef4444"
-                />
-              )}
             </div>
           </div>
         </>
