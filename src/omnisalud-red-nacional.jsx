@@ -3,7 +3,7 @@ import { LOGO_B64 } from "./data/logo.js";
 import { fetchServicios, fetchCiudades, updateServicioActive } from "./api/servicios.js";
 
 const normalize = (str) =>
-  str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  (str || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 const formatPrecio = (n) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
@@ -88,7 +88,7 @@ function ServiceCard({ item, query }) {
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", lineHeight: 1.2, marginBottom: 4 }}>
-          {highlight(item.servicio)}
+          {highlight(item.servicio || item.codigo)}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: "#1aab8a", background: "#e8faf5", borderRadius: 4, padding: "1px 6px", textTransform: "uppercase" }}>
@@ -174,8 +174,8 @@ export default function App() {
   const applySort = (items) => {
     if (sortAlpha) {
       items.sort((a, b) => sortAlpha === 1 
-        ? a.servicio.localeCompare(b.servicio) 
-        : b.servicio.localeCompare(a.servicio)
+        ? (a.servicio || "").localeCompare(b.servicio || "") 
+        : (b.servicio || "").localeCompare(a.servicio || "")
       );
     } else if (sortPrice) {
       items.sort((a, b) => sortPrice === 1 
@@ -216,7 +216,7 @@ export default function App() {
 
   const tabsDef = [
     ["buscar", <><IconConsult size={16} /> Consultar</>],
-    // ["ajustes", <><IconSettings size={16} /> Ajustes</>],
+    ["ajustes", <><IconSettings size={16} /> Ajustes</>],
   ];
 
   return (
@@ -402,7 +402,7 @@ export default function App() {
                       return (
                         <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 16px", marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.02)", border: "1px solid #eef1f6", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, opacity: isOff ? 0.6 : 1 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", textDecoration: isOff ? "line-through" : "none" }}>{item.servicio}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", textDecoration: isOff ? "line-through" : "none" }}>{item.servicio || item.codigo}</div>
                             <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
                               <span style={{ fontSize: 10, fontWeight: 700, color: "#1aab8a" }}>{item.codigo}</span>
                               <span style={{ fontSize: 11, color: "#6b7a99", display: "flex", alignItems: "center", gap: 4 }}><IconLocation size={12} color="#94a3b8" /> {item.ciudad}</span>

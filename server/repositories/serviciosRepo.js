@@ -10,7 +10,7 @@ const BASE_SELECT = `
     sn.active       AS active
   FROM omn_core_global.core_servicios_nacional sn
   INNER JOIN omn_core_global.core_ciudades_nacional       c  ON c.id = sn.ciudad_id
-  INNER JOIN omn_core_global.core_servicios_sedes_propias sp ON sp.codigo = sn.servicio_codigo
+  LEFT JOIN omn_core_global.core_servicios_sedes_propias sp ON sp.codigo = sn.servicio_codigo
 `;
 
 function normalizeRow(r) {
