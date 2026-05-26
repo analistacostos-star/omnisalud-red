@@ -9,7 +9,7 @@ function loadPEM(envKey) {
   if (!v) return undefined;
   let content;
   if (v.includes("-----BEGIN")) {
-    content = v;
+    content = v.replace(/\\n/g, "\n");
   } else {
     try {
       content = fs.readFileSync(v, "utf8");
