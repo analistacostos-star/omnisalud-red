@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      allowedHosts: ['.ngrok-free.dev','*'],
       proxy: {
         '/api': {
           target: `http://localhost:${apiPort}`,

@@ -57,6 +57,24 @@ const IconEyeOff = ({ size = 18, color = "currentColor" }) => (
   </svg>
 );
 
+const IconHamburger = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+  </svg>
+);
+
+const IconClose = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+  </svg>
+);
+
+const IconFilter = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
+  </svg>
+);
+
 function ClearBtn({ onClick }) {
   return (
     <button onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "0 6px", color: "#6b7a99", fontSize: 20, lineHeight: 1, display: "flex", alignItems: "center" }}>
@@ -108,6 +126,79 @@ function ServiceCard({ item, query }) {
   );
 }
 
+// --- Stat Badge (reusable) ---
+function StatBadge({ label, value, color, variant }) {
+  const isRed = variant === "red";
+  return (
+    <div className="badge-touch" style={{
+      background: isRed ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.1)",
+      padding: "clamp(3px, 1vw, 5px) clamp(6px, 2vw, 10px)", borderRadius: 8,
+      border: `1px solid ${isRed ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.12)"}`,
+      textAlign: "right",
+    }}>
+      <div style={{ fontSize: "clamp(7px, 2vw, 9px)", fontWeight: 700, color: isRed ? "#ef4444" : "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "clamp(12px, 3.5vw, 14px)", fontWeight: 800, color: isRed ? "#ef4444" : (color || "#fff") }}>{value}</div>
+    </div>
+  );
+}
+
+// --- Menu badge item with description ---
+function MenuBadge({ label, value, description, color }) {
+  return (
+    <div className="badge-touch" style={{
+      background: "rgba(255,255,255,0.08)", padding: "12px 16px", borderRadius: 10,
+      border: "1px solid rgba(255,255,255,0.1)", marginBottom: 8,
+    }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: color || "#fff" }}>{value}</div>
+      <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{description}</div>
+    </div>
+  );
+}
+
+function SortControls({ handleSortAlpha, handleSortPrice, sortAlpha, sortPrice, onlyInactive, setOnlyInactive, vertical }) {
+  return (
+    <div style={{ display: "flex", gap: 8, flexDirection: vertical ? "column" : "row" }}>
+      <button onClick={handleSortAlpha} className={`filter-btn ${sortAlpha ? "active" : ""}`} style={vertical ? { width: "100%", justifyContent: "center" } : {}}>
+        <IconSortAZ size={16} /> {sortAlpha === 2 ? "Z-A" : "A-Z"}
+      </button>
+      <button onClick={handleSortPrice} className={`filter-btn ${sortPrice ? "active" : ""}`} style={vertical ? { width: "100%", justifyContent: "center" } : {}}>
+        <IconSortPrice size={16} /> {sortPrice === 2 ? "Mayor" : "Menor"}
+      </button>
+      {setOnlyInactive && (
+        <button onClick={() => setOnlyInactive(!onlyInactive)} className={`filter-btn ${onlyInactive ? "active" : ""}`}
+          style={{
+            ...(vertical ? { width: "100%", justifyContent: "center" } : {}),
+            color: onlyInactive ? "#ef4444" : "#6b7a99",
+            borderColor: onlyInactive ? "#ef4444" : "#eef1f6",
+            background: onlyInactive ? "#fef2f2" : "#fff",
+          }}>
+          {onlyInactive ? <IconEyeOff size={18} color="#ef4444" /> : <IconEye size={18} color="#6b7a99" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CitySelect({ value, onChange, ciudades }) {
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex", zIndex: 1 }}>
+        <IconLocation size={14} color="#94a3b8" />
+      </span>
+      <select value={value} onChange={onChange} style={{
+        width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 38px",
+        borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, fontWeight: 600,
+        appearance: "none", background: "#f8fafc", color: "#0c2d6b", cursor: "pointer",
+      }}>
+        {ciudades.map((c) => (<option key={c} value={c}>{c === "TODAS" ? "Todas las ciudades" : c}</option>))}
+      </select>
+    </div>
+  );
+}
+
 export default function App() {
   const [rol, setRol] = useState("cliente");
   const [query, setQuery] = useState("");
@@ -119,9 +210,11 @@ export default function App() {
   const [tab, setTab] = useState("buscar");
   const [adjQuery, setAdjQuery] = useState("");
   const [adjCiudad, setAdjCiudad] = useState("TODAS");
-  
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+
   // Sorting States: 0 = none/default, 1 = asc, 2 = desc
-  const [sortAlpha, setSortAlpha] = useState(1); 
+  const [sortAlpha, setSortAlpha] = useState(1);
   const [sortPrice, setSortPrice] = useState(0);
   const [onlyInactive, setOnlyInactive] = useState(false);
 
@@ -169,17 +262,22 @@ export default function App() {
     setSortPrice(prev => (prev === 1 ? 2 : 1));
   };
 
+  const closeMenu = () => setMenuOpen(false);
+  const closeFilter = () => setFilterOpen(false);
+
   const totalCiudades = useMemo(() => new Set(portafolio.map((r) => r.ciudad)).size, [portafolio]);
+  const totalActivos = useMemo(() => portafolio.filter(r => r.active).length, [portafolio]);
+  const totalInactivos = useMemo(() => portafolio.filter(r => !r.active).length, [portafolio]);
 
   const applySort = (items) => {
     if (sortAlpha) {
-      items.sort((a, b) => sortAlpha === 1 
-        ? (a.servicio || "").localeCompare(b.servicio || "") 
+      items.sort((a, b) => sortAlpha === 1
+        ? (a.servicio || "").localeCompare(b.servicio || "")
         : (b.servicio || "").localeCompare(a.servicio || "")
       );
     } else if (sortPrice) {
-      items.sort((a, b) => sortPrice === 1 
-        ? a.precio - b.precio 
+      items.sort((a, b) => sortPrice === 1
+        ? a.precio - b.precio
         : b.precio - a.precio
       );
     }
@@ -219,6 +317,16 @@ export default function App() {
     ["ajustes", <><IconSettings size={16} /> Ajustes</>],
   ];
 
+  const switchTab = (key) => {
+    setTab(key);
+    setRol(key === "buscar" ? "cliente" : "admin");
+    setMenuOpen(false);
+  };
+
+  const currentCiudadLabel = tab === "buscar"
+    ? (ciudad === "TODAS" ? "Red" : ciudad)
+    : (adjCiudad === "TODAS" ? "Red" : adjCiudad);
+
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <style>{`
@@ -235,6 +343,93 @@ export default function App() {
         .filter-btn.active { border-color: #1aab8a; color: #1aab8a; background: #e8faf5; }
         .checkbox-container { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 13px; font-weight: 700; color: #6b7a99; }
         .checkbox-container input { cursor: pointer; width: 18px; height: 18px; accent-color: #1aab8a; }
+        .badge-touch { min-width: clamp(36px, 11vw, 44px); min-height: clamp(36px, 11vw, 44px); display: flex; flex-direction: column; justify-content: center; }
+
+        /* ── Responsive visibility ── */
+        /* Default (mobile-first): hide desktop, show mobile compact badge */
+        .nav-desktop-only { display: none; }
+        .nav-desktop-tabs { display: none; }
+        .nav-mobile-only { display: flex; margin-left: auto; align-items: center; gap: 8px; flex-shrink: 0; }
+        .filter-desktop { display: none; }
+        .filter-mobile-btn { display: flex; }
+
+        /* ≥ 769px: show tabs and inline filters (tablet mode) */
+        @media (min-width: 769px) {
+          .nav-desktop-tabs { display: flex !important; gap: 4px; height: 100%; align-items: center; }
+          .filter-desktop { display: flex !important; gap: 12px; align-items: center; }
+          .filter-mobile-btn { display: none !important; }
+        }
+
+        /* ≥ 960px: show desktop badges, hide mobile hamburger (full desktop) */
+        @media (min-width: 960px) {
+          .nav-desktop-only { display: flex !important; }
+          .nav-mobile-only { display: none !important; }
+        }
+
+        /* ≤ 768px: compact mobile layout */
+        @media (max-width: 768px) {
+          main { padding: 20px 12px !important; }
+          .nav-inner { gap: clamp(6px, 2vw, 12px) !important; }
+          .nav-logo-wrap { flex-shrink: 1 !important; min-width: 0 !important; overflow: hidden !important; }
+          .nav-subtitle { display: none !important; }
+          .nav-title-text { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+        }
+
+        /* ── Overlay ── */
+        .overlay {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.5); z-index: 100;
+          animation: fadeIn 0.2s ease;
+        }
+
+        /* ── Menu drawer (right side) ── */
+        .menu-drawer {
+          position: fixed; top: 0; right: 0; bottom: 0; width: 300px; max-width: 85vw;
+          background: #0c2d6b; z-index: 101; overflow-y: auto;
+          padding: 24px 20px;
+          animation: slideInRight 0.25s ease;
+          box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+        }
+        .menu-drawer-header {
+          display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+        }
+        .menu-drawer-header h3 { color: #fff; font-size: 14px; margin: 0; }
+
+        /* ── Filter sheet (bottom) ── */
+        .filter-sheet {
+          position: fixed; left: 0; right: 0; bottom: 0;
+          background: #fff; z-index: 101;
+          border-radius: 16px 16px 0 0;
+          max-height: 85vh; overflow-y: auto;
+          padding: 24px 20px 32px;
+          animation: slideUp 0.3s ease;
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        }
+        .filter-sheet-header {
+          display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .filter-sheet-header h3 { font-size: 16px; font-weight: 800; color: "#0c2d6b"; margin: 0; }
+        .filter-sheet-section { margin-bottom: 16px; }
+        .filter-sheet-label { font-size: 11px; font-weight: 700; color: "#6b7a99"; text-transform: uppercase; margin-bottom: 8px; }
+
+        /* ── Hamburger button ── */
+        .hamburger-btn {
+          min-width: clamp(36px, 11vw, 44px); min-height: clamp(36px, 11vw, 44px); display: flex; align-items: center; justify-content: center;
+          background: none; border: none; cursor: pointer; color: #fff; border-radius: 8px;
+        }
+        .hamburger-btn:hover { background: rgba(255,255,255,0.1); }
+
+        /* ── Filter mobile button ── */
+        .filter-mob-btn {
+          min-width: clamp(36px, 11vw, 44px); min-height: clamp(36px, 11vw, 44px); display: flex; align-items: center; justify-content: center; gap: 8px;
+          padding: 10px 16px; border-radius: 8px; border: 1.5px solid #eef1f6;
+          background: #fff; color: #6b7a99; font-size: 13px; font-weight: 700; cursor: pointer;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
       `}</style>
 
       {/* ── TOP NAVBAR ── */}
@@ -242,25 +437,24 @@ export default function App() {
         position: "sticky", top: 0, zIndex: 50,
         background: "#0c2d6b", borderBottom: "1px solid rgba(255,255,255,0.1)", width: "100%",
       }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", gap: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <div className="nav-inner" style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(8px, 3vw, 24px)", minHeight: "clamp(52px, 16vw, 64px)", display: "flex", alignItems: "center", gap: "clamp(6px, 3vw, 24px)" }}>
+          {/* Logo + title (always visible) */}
+          <div className="nav-logo-wrap" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
             <img src={LOGO_B64} alt="Omnisalud" style={{ height: 32, objectFit: "contain", mixBlendMode: "screen" }} />
             <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 12 }}>
-              <h1 style={{ fontSize: 14, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2 }}>
+              <h1 className="nav-title-text" style={{ fontSize: "clamp(11px, 3.5vw, 14px)", fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2 }}>
                 {tab === "buscar" ? "Consultar Servicios" : "Gestión de Portafolio"}
               </h1>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", margin: "2px 0 0", lineHeight: 1.2 }}>
+              <p className="nav-subtitle" style={{ fontSize: "clamp(8px, 2.5vw, 10px)", color: "rgba(255,255,255,0.5)", margin: "2px 0 0", lineHeight: 1.2 }}>
                 {tab === "buscar" ? "Explora tarifas y disponibilidad en tiempo real" : "Configura la visibilidad del catálogo nacional"}
               </p>
             </div>
           </div>
 
-          <nav style={{ display: "flex", gap: 4, height: "100%", alignItems: "center" }}>
+          {/* Desktop tabs */}
+          <nav className="nav-desktop-tabs">
             {tabsDef.map(([key, label]) => (
-              <button key={key} onClick={() => {
-                setTab(key);
-                setRol(key === "buscar" ? "cliente" : "admin");
-              }} style={{
+              <button key={key} onClick={() => switchTab(key)} style={{
                 border: "none", cursor: "pointer", height: 40, padding: "0 16px",
                 borderRadius: 8, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8,
                 background: tab === key ? "rgba(255,255,255,0.1)" : "transparent",
@@ -270,56 +464,171 @@ export default function App() {
             ))}
           </nav>
 
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <div style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", textAlign: "right" }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>
-                Total Servicios {tab === "buscar" ? (ciudad === "TODAS" ? "Red" : ciudad) : (adjCiudad === "TODAS" ? "Red" : adjCiudad)}
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{servicesInCity.toLocaleString()}</div>
-            </div>
-            <div style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", textAlign: "right" }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>Ciudades</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#1aab8a" }}>{totalCiudades}</div>
-            </div>
-            <div style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", textAlign: "right" }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>Total Servicios</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{portafolio.filter(r => r.active).length.toLocaleString()}</div>
-            </div>
+          {/* Desktop badges */}
+          <div className="nav-desktop-only" style={{ marginLeft: "auto", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <StatBadge label={`Total Servicios ${currentCiudadLabel}`} value={servicesInCity.toLocaleString()} />
+            <StatBadge label="Ciudades" value={totalCiudades} color="#1aab8a" />
+            <StatBadge label="Total Servicios" value={totalActivos.toLocaleString()} />
             {rol === "admin" && (
-              <div style={{ background: "rgba(239,68,68,0.15)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.25)", textAlign: "right" }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", marginBottom: 1 }}>Inactivos</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#ef4444" }}>{portafolio.filter(r => !r.active).length.toLocaleString()}</div>
-              </div>
+              <StatBadge label="Inactivos" value={totalInactivos.toLocaleString()} variant="red" />
             )}
+          </div>
+
+          {/* Mobile: compact badge + hamburger */}
+          <div className="nav-mobile-only" style={{ marginLeft: "auto", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div className="nav-mobile-badge" style={{
+              background: "rgba(255,255,255,0.1)", padding: "clamp(4px, 1.5vw, 6px) clamp(8px, 2vw, 12px)", borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.12)", textAlign: "right",
+            }}>
+              <div style={{ fontSize: "clamp(7px, 2vw, 9px)", fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Total Servicios</div>
+              <div style={{ fontSize: "clamp(12px, 3.5vw, 14px)", fontWeight: 800, color: "#fff" }}>{totalActivos.toLocaleString()}</div>
+            </div>
+            <button
+              className="hamburger-btn"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Abrir menú de navegación"
+            >
+              <IconHamburger size={22} color="#fff" />
+            </button>
           </div>
         </div>
       </header>
 
+      {/* ── HAMBURGER MENU DRAWER ── */}
+      {menuOpen && (
+        <>
+          <div className="overlay" onClick={closeMenu} aria-hidden="true" />
+          <div className="menu-drawer" role="dialog" aria-label="Menú de navegación">
+            <div className="menu-drawer-header">
+              <h3>Menú</h3>
+              <button onClick={closeMenu} className="hamburger-btn" aria-label="Cerrar menú">
+                <IconClose size={20} color="#fff" />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+              {tabsDef.map(([key, label]) => (
+                <button key={key} onClick={() => switchTab(key)} style={{
+                  border: "none", cursor: "pointer", height: 44, padding: "0 16px",
+                  borderRadius: 8, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+                  background: tab === key ? "rgba(255,255,255,0.1)" : "transparent",
+                  color: tab === key ? "#fff" : "rgba(255,255,255,0.6)",
+                  width: "100%", textAlign: "left",
+                }}>{label}</button>
+              ))}
+            </div>
+
+            {/* Extra badges in menu */}
+            <div style={{ marginTop: 12 }}>
+              <MenuBadge
+                label={`Servicios en ${currentCiudadLabel}`}
+                value={servicesInCity.toLocaleString()}
+                description="Servicios disponibles en la ubicación actual"
+              />
+              <MenuBadge
+                label="Ciudades"
+                value={totalCiudades}
+                description="Total ciudades cubiertas"
+                color="#1aab8a"
+              />
+              {rol === "admin" && (
+                <MenuBadge
+                  label="Inactivos"
+                  value={totalInactivos.toLocaleString()}
+                  description="Servicios inactivos en el sistema"
+                  color="#ef4444"
+                />
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── FILTER BOTTOM SHEET ── */}
+      {filterOpen && (
+        <>
+          <div className="overlay" onClick={closeFilter} aria-hidden="true" />
+          <div className="filter-sheet" role="dialog" aria-label="Filtros">
+            <div className="filter-sheet-header">
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0c2d6b", margin: 0 }}>Filtros</h3>
+              <button onClick={closeFilter} style={{ minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer" }} aria-label="Cerrar filtros">
+                <IconClose size={20} color="#6b7a99" />
+              </button>
+            </div>
+
+            <div className="filter-sheet-section">
+              <div className="filter-sheet-label" style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 8 }}>Ciudad</div>
+              {tab === "buscar" ? (
+                <CitySelect value={ciudad} onChange={(e) => { setCiudad(e.target.value); closeFilter(); }} ciudades={ciudades} />
+              ) : (
+                <CitySelect value={adjCiudad} onChange={(e) => { setAdjCiudad(e.target.value); closeFilter(); }} ciudades={ciudades} />
+              )}
+            </div>
+
+            <div className="filter-sheet-section">
+              <div className="filter-sheet-label" style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 8 }}>Orden</div>
+              <SortControls
+                handleSortAlpha={handleSortAlpha}
+                handleSortPrice={handleSortPrice}
+                sortAlpha={sortAlpha}
+                sortPrice={sortPrice}
+                onlyInactive={tab === "ajustes" ? onlyInactive : null}
+                setOnlyInactive={tab === "ajustes" ? setOnlyInactive : null}
+                vertical
+              />
+            </div>
+
+            <div className="filter-sheet-section" style={{ marginTop: 16 }}>
+              <div className="filter-sheet-label" style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 8 }}>Estadísticas</div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 auto", background: "#f8fafc", padding: "12px 14px", borderRadius: 8, border: "1px solid #eef1f6", textAlign: "center" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#0c2d6b" }}>{servicesInCity.toLocaleString()}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginTop: 2 }}>Servicios {currentCiudadLabel}</div>
+                </div>
+                <div style={{ flex: "1 1 auto", background: "#f8fafc", padding: "12px 14px", borderRadius: 8, border: "1px solid #eef1f6", textAlign: "center" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#1aab8a" }}>{totalCiudades}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginTop: 2 }}>Ciudades</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── MAIN CONTENT ── */}
       <main style={{ flex: 1, padding: "32px 24px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           {tab === "buscar" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ background: "#fff", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(10,40,90,0.04)", border: "1px solid #eef1f6", display: "flex", gap: 12, alignItems: "center" }}>
-                <div style={{ position: "relative", flex: 1 }}>
+              {/* Search bar */}
+              <div style={{ background: "#fff", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(10,40,90,0.04)", border: "1px solid #eef1f6", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
                   <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconSearch size={16} color="#94a3b8" /></span>
                   <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nombre o código..." style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 42px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, outline: "none", background: "#f8fafc", color: "#0c2d6b" }} />
                   {query && <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}><ClearBtn onClick={() => { setQuery(""); inputRef.current?.focus(); }} /></span>}
                 </div>
-                <div style={{ position: "relative", width: 200 }}>
-                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconLocation size={14} color="#94a3b8" /></span>
-                  <select value={ciudad} onChange={(e) => setCiudad(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 38px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, fontWeight: 600, appearance: "none", background: "#f8fafc", color: "#0c2d6b", cursor: "pointer" }}>
-                    {ciudades.map((c) => (<option key={c} value={c}>{c === "TODAS" ? "Todas las ciudades" : c}</option>))}
-                  </select>
+
+                {/* Desktop inline filters */}
+                <div className="filter-desktop" style={{ gap: 12, alignItems: "center" }}>
+                  <div style={{ position: "relative", width: 200 }}>
+                    <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconLocation size={14} color="#94a3b8" /></span>
+                    <select value={ciudad} onChange={(e) => setCiudad(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 38px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, fontWeight: 600, appearance: "none", background: "#f8fafc", color: "#0c2d6b", cursor: "pointer" }}>
+                      {ciudades.map((c) => (<option key={c} value={c}>{c === "TODAS" ? "Todas las ciudades" : c}</option>))}
+                    </select>
+                  </div>
+                  <SortControls handleSortAlpha={handleSortAlpha} handleSortPrice={handleSortPrice} sortAlpha={sortAlpha} sortPrice={sortPrice} />
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={handleSortAlpha} className={`filter-btn ${sortAlpha ? "active" : ""}`}>
-                    <IconSortAZ size={16} /> {sortAlpha === 2 ? "Z-A" : "A-Z"}
-                  </button>
-                  <button onClick={handleSortPrice} className={`filter-btn ${sortPrice ? "active" : ""}`}>
-                    <IconSortPrice size={16} /> {sortPrice === 2 ? "Mayor" : "Menor"}
+
+                {/* Mobile filter button */}
+                <div className="filter-mobile-btn">
+                  <button className="filter-mob-btn" onClick={() => setFilterOpen(true)} aria-label="Abrir filtros">
+                    <IconFilter size={16} /> Filtros
                   </button>
                 </div>
               </div>
+
+              {/* Results */}
               <div>
                 {!query && ciudad === "TODAS" ? (
                   <div style={{ textAlign: "center", padding: "60px 20px", background: "#fff", borderRadius: 12, border: "1px dashed #cbd5e1" }}>
@@ -347,31 +656,35 @@ export default function App() {
 
           {tab === "ajustes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Search bar */}
               <div style={{ background: "#fff", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(10,40,90,0.04)", border: "1px solid #eef1f6" }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <div style={{ position: "relative", flex: 1 }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
                     <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconSearch size={16} color="#94a3b8" /></span>
                     <input ref={adjInputRef} value={adjQuery} onChange={(e) => setAdjQuery(e.target.value)} placeholder="Filtrar servicios..." style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 42px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, outline: "none", background: "#f8fafc" }} />
                   </div>
-                  <div style={{ position: "relative", width: 200 }}>
-                    <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconLocation size={14} color="#94a3b8" /></span>
-                    <select value={adjCiudad} onChange={(e) => setAdjCiudad(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 38px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, fontWeight: 600, appearance: "none", background: "#f8fafc", cursor: "pointer" }}>
-                      {ciudades.map((c) => (<option key={c} value={c}>{c === "TODAS" ? "Todas las ciudades" : c}</option>))}
-                    </select>
+
+                  {/* Desktop inline filters */}
+                  <div className="filter-desktop" style={{ gap: 12, alignItems: "center" }}>
+                    <div style={{ position: "relative", width: 200 }}>
+                      <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconLocation size={14} color="#94a3b8" /></span>
+                      <select value={adjCiudad} onChange={(e) => setAdjCiudad(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 38px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, fontWeight: 600, appearance: "none", background: "#f8fafc", cursor: "pointer" }}>
+                        {ciudades.map((c) => (<option key={c} value={c}>{c === "TODAS" ? "Todas las ciudades" : c}</option>))}
+                      </select>
+                    </div>
+                    <SortControls handleSortAlpha={handleSortAlpha} handleSortPrice={handleSortPrice} sortAlpha={sortAlpha} sortPrice={sortPrice} onlyInactive={onlyInactive} setOnlyInactive={setOnlyInactive} />
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={handleSortAlpha} className={`filter-btn ${sortAlpha ? "active" : ""}`}>
-                      <IconSortAZ size={16} /> {sortAlpha === 2 ? "Z-A" : "A-Z"}
-                    </button>
-                    <button onClick={handleSortPrice} className={`filter-btn ${sortPrice ? "active" : ""}`}>
-                      <IconSortPrice size={16} /> {sortPrice === 2 ? "Mayor" : "Menor"}
-                    </button>
-                    <button onClick={() => setOnlyInactive(!onlyInactive)} className={`filter-btn ${onlyInactive ? "active" : ""}`} style={{ color: onlyInactive ? "#ef4444" : "#6b7a99", borderColor: onlyInactive ? "#ef4444" : "#eef1f6", background: onlyInactive ? "#fef2f2" : "#fff" }}>
-                      {onlyInactive ? <IconEyeOff size={18} color="#ef4444" /> : <IconEye size={18} color="#6b7a99" />}
+
+                  {/* Mobile filter button */}
+                  <div className="filter-mobile-btn">
+                    <button className="filter-mob-btn" onClick={() => setFilterOpen(true)} aria-label="Abrir filtros">
+                      <IconFilter size={16} /> Filtros
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* Results */}
               <div>
                 {!adjQuery && adjCiudad === "TODAS" && !onlyInactive ? (
                   <div style={{ textAlign: "center", padding: "60px 20px" }}>
