@@ -217,9 +217,13 @@ export default function App() {
   const [sortAlpha, setSortAlpha] = useState(1);
   const [sortPrice, setSortPrice] = useState(0);
   const [onlyInactive, setOnlyInactive] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
 
   const inputRef = useRef(null);
   const adjInputRef = useRef(null);
+  const passwordRef = useRef(null);
 
   useEffect(() => {
     if (rol === "admin" && tab === "buscar") setTab("ajustes");
@@ -240,6 +244,12 @@ export default function App() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (showPasswordModal) {
+      setTimeout(() => passwordRef.current?.focus(), 100);
+    }
+  }, [showPasswordModal]);
 
   const toggleActive = async (id, currentStatus) => {
     try {
@@ -318,9 +328,29 @@ export default function App() {
   ];
 
   const switchTab = (key) => {
+    if (key === "ajustes" && rol !== "admin") {
+      setShowPasswordModal(true);
+      return;
+    }
     setTab(key);
     setRol(key === "buscar" ? "cliente" : "admin");
     setMenuOpen(false);
+  };
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (passwordInput === "Costos2026*") {
+      setShowPasswordModal(false);
+      setPasswordInput("");
+      setPasswordError(false);
+      setTab("ajustes");
+      setRol("admin");
+      setMenuOpen(false);
+    } else {
+      setPasswordError(true);
+      setPasswordInput("");
+      passwordRef.current?.focus();
+    }
   };
 
   const currentCiudadLabel = tab === "buscar"
@@ -732,6 +762,63 @@ export default function App() {
           </footer>
         </div>
       </main>
+
+      {/* ── PASSWORD MODAL ── */}
+      {showPasswordModal && (
+        <>
+          <div className="overlay" onClick={() => { setShowPasswordModal(false); setPasswordInput(""); setPasswordError(false); }} aria-hidden="true" />
+          <div className="password-modal" role="dialog" aria-label="Autenticación requerida">
+            <form onSubmit={handlePasswordSubmit}>
+              <div style={{ marginBottom: 16 }}>
+                <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 800, color: "#0c2d6b" }}>Acceso Restringido</h2>
+                <p style={{ margin: 0, fontSize: 13, color: "#6b7a99" }}>Ingresa la contraseña para acceder al panel de ajustes</p>
+              </div>
+              <input
+                ref={passwordRef}
+                type="password"
+                value={passwordInput}
+                onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(false); }}
+                placeholder="Contraseña"
+                autoFocus
+                style={{
+                  width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 8,
+                  border: `1.5px solid ${passwordError ? "#ef4444" : "#eef1f6"}`,
+                  fontSize: 14, outline: "none", background: "#f8fafc", color: "#0c2d6b", marginBottom: passwordError ? 4 : 12,
+                }}
+              />
+              {passwordError && (
+                <p style={{ margin: "0 0 12px", fontSize: 12, color: "#ef4444", fontWeight: 600 }}>Contraseña incorrecta</p>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="button" onClick={() => { setShowPasswordModal(false); setPasswordInput(""); setPasswordError(false); }}
+                  style={{
+                    flex: 1, padding: "10px 0", borderRadius: 8, border: "1.5px solid #eef1f6",
+                    background: "#fff", color: "#6b7a99", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                  }}>
+                  Cancelar
+                </button>
+                <button type="submit"
+                  style={{
+                    flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
+                    background: "#0c2d6b", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                  }}>
+                  Ingresar
+                </button>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
+
+      <style>{`
+        .password-modal {
+          position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          background: #fff; z-index: 101; border-radius: 16px;
+          padding: 28px 24px; width: 360px; max-width: 90vw;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+          animation: fadeIn 0.2s ease;
+        }
+      `}</style>
     </div>
   );
 }
