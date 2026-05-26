@@ -199,9 +199,9 @@ export default function App() {
   const resultadosAdj = useMemo(() => {
     if (!adjQuery && adjCiudad === "TODAS" && !onlyInactive) return [];
     let items = portafolio.filter((r) => {
-      const matchActive = onlyInactive ? !r.active : r.active;
+      const matchActive = onlyInactive ? !r.active : true;
       const matchCiudad = adjCiudad === "TODAS" || r.ciudad === adjCiudad;
-      const matchQuery = !adjQuery || normalize(r.servicio).includes(normalize(adjQuery)) || normalize(r.codigo).includes(normalize(adjQuery));
+      const matchQuery = !adjQuery || normalize(r.servicio || "").includes(normalize(adjQuery)) || normalize(r.codigo).includes(normalize(adjQuery));
       return matchActive && matchCiudad && matchQuery;
     });
     return applySort(items).slice(0, 100);
@@ -245,8 +245,13 @@ export default function App() {
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", gap: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
             <img src={LOGO_B64} alt="Omnisalud" style={{ height: 32, objectFit: "contain", mixBlendMode: "screen" }} />
-            <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 12, color: "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", lineHeight: 1.2 }}>
-              Red Nacional<br />de Proveedores
+            <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 12 }}>
+              <h1 style={{ fontSize: 14, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2 }}>
+                {tab === "buscar" ? "Consultar Servicios" : "Gestión de Portafolio"}
+              </h1>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", margin: "2px 0 0", lineHeight: 1.2 }}>
+                {tab === "buscar" ? "Explora tarifas y disponibilidad en tiempo real" : "Configura la visibilidad del catálogo nacional"}
+              </p>
             </div>
           </div>
 
@@ -265,51 +270,33 @@ export default function App() {
             ))}
           </nav>
 
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, textTransform: "uppercase" }}>Vista Activa</div>
-              <div style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>{rol === "admin" ? "Panel Administrativo" : "Portal de Consultas"}</div>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", textAlign: "right" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>
+                Total Servicios {tab === "buscar" ? (ciudad === "TODAS" ? "Red" : ciudad) : (adjCiudad === "TODAS" ? "Red" : adjCiudad)}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{servicesInCity.toLocaleString()}</div>
             </div>
+            <div style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", textAlign: "right" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>Ciudades</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#1aab8a" }}>{totalCiudades}</div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", textAlign: "right" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 1 }}>Total Servicios</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{portafolio.filter(r => r.active).length.toLocaleString()}</div>
+            </div>
+            {rol === "admin" && (
+              <div style={{ background: "rgba(239,68,68,0.15)", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.25)", textAlign: "right" }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", marginBottom: 1 }}>Inactivos</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#ef4444" }}>{portafolio.filter(r => !r.active).length.toLocaleString()}</div>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <main style={{ flex: 1, padding: "32px 24px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
-            <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: "#0c2d6b", margin: 0 }}>
-                {tab === "buscar" ? "Consultar Servicios" : "Gestión de Portafolio"}
-              </h1>
-              <p style={{ fontSize: 13, color: "#6b7a99", margin: "4px 0 0" }}>
-                {tab === "buscar" ? "Explora tarifas y disponibilidad en tiempo real" : "Configura la visibilidad del catálogo nacional"}
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ background: "#fff", padding: "8px 16px", borderRadius: 10, border: "1px solid #eef1f6", textAlign: "right" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 2 }}>
-                  Total Servicios {tab === "buscar" ? (ciudad === "TODAS" ? "Red" : ciudad) : (adjCiudad === "TODAS" ? "Red" : adjCiudad)}
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#0c2d6b" }}>{servicesInCity.toLocaleString()}</div>
-              </div>
-              <div style={{ background: "#fff", padding: "8px 16px", borderRadius: 10, border: "1px solid #eef1f6", textAlign: "right" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 2 }}>Ciudades</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#1aab8a" }}>{totalCiudades}</div>
-              </div>
-              <div style={{ background: "#fff", padding: "8px 16px", borderRadius: 10, border: "1px solid #eef1f6", textAlign: "right" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 2 }}>Total Servicios</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#0c2d6b" }}>{portafolio.filter(r => r.active).length.toLocaleString()}</div>
-              </div>
-              {rol === "admin" && (
-                <div style={{ background: "#fff", padding: "8px 16px", borderRadius: 10, border: "1px solid #fee2e2", textAlign: "right" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", marginBottom: 2 }}>Inactivos</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#ef4444" }}>{portafolio.filter(r => !r.active).length.toLocaleString()}</div>
-                </div>
-              )}
-            </div>
-          </div>
-
           {tab === "buscar" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div style={{ background: "#fff", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(10,40,90,0.04)", border: "1px solid #eef1f6", display: "flex", gap: 12, alignItems: "center" }}>
@@ -392,6 +379,12 @@ export default function App() {
                     <h3 style={{ margin: 0, color: "#4a5b7a" }}>Panel de Gestión</h3>
                     <p style={{ color: "#8a9ab8", fontSize: 14 }}>Busca un servicio o activa el filtro de inactivos para gestionar.</p>
                   </div>
+                ) : resultadosAdj.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>😕</div>
+                    <h3 style={{ margin: 0, color: "#4a5b7a" }}>No encontramos coincidencias</h3>
+                    <p style={{ color: "#8a9ab8", fontSize: 14 }}>Prueba con otros términos o verifica los filtros.</p>
+                  </div>
                 ) : (
                   <>
                     <div style={{ marginBottom: 12, padding: "0 4px" }}>
@@ -400,7 +393,7 @@ export default function App() {
                     {resultadosAdj.map((item, i) => {
                       const isOff = !item.active;
                       return (
-                        <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 16px", marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.02)", border: "1px solid #eef1f6", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, opacity: isOff ? 0.6 : 1 }}>
+                        <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 16px", marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.02)", border: "1px solid #eef1f6", borderLeft: isOff ? "4px solid #cbd5e1" : "4px solid #1aab8a", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, opacity: isOff ? 0.6 : 1 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", textDecoration: isOff ? "line-through" : "none" }}>{item.servicio || item.codigo}</div>
                             <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
