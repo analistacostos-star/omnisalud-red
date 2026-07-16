@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { LOGO_B64 } from "./data/logo.js";
-import { fetchServicios, fetchCiudades, updateServicioActive } from "./api/servicios.js";
+import { fetchServicios, fetchServiciosSedes, fetchCiudades, updateServicioActive } from "./api/servicios.js";
 
 const normalize = (str) =>
   (str || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -42,6 +42,12 @@ const IconSettings = ({ size = 18, color = "currentColor" }) => (
 const IconConsult = ({ size = 18, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
     <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+  </svg>
+);
+
+const IconPackage = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M12 2l9 5v10l-9 5-9-5V7l9-5zm0 2.31L5.5 8 12 11.69 18.5 8 12 4.31zM5 9.72v6.1l6 3.33v-6.1L5 9.72zm14 0l-6 3.33v6.1l6-3.33v-6.1z" />
   </svg>
 );
 
@@ -112,9 +118,11 @@ function ServiceCard({ item, query }) {
           <span style={{ fontSize: 10, fontWeight: 700, color: "#1aab8a", background: "#e8faf5", borderRadius: 4, padding: "1px 6px", textTransform: "uppercase" }}>
             {item.codigo}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7a99", display: "flex", alignItems: "center", gap: 4 }}>
-            <IconLocation size={12} color="#94a3b8" /> {item.ciudad}
-          </span>
+          {item.ciudad && (
+            <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7a99", display: "flex", alignItems: "center", gap: 4 }}>
+              <IconLocation size={12} color="#94a3b8" /> {item.ciudad}
+            </span>
+          )}
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -185,6 +193,24 @@ function CitySelect({ value, onChange, ciudades }) {
   );
 }
 
+function PaqSelect({ value, onChange }) {
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex", zIndex: 1 }}>
+        <IconFilter size={14} color="#94a3b8" />
+      </span>
+      <select value={value} onChange={onChange} style={{
+        width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 38px",
+        borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, fontWeight: 600,
+        appearance: "none", background: "#f8fafc", color: "#0c2d6b", cursor: "pointer",
+      }}>
+        <option value="TODOS">Todos los servicios</option>
+        <option value="PAQ">Solo Paquetes</option>
+      </select>
+    </div>
+  );
+}
+
 export default function App() {
   const [rol, setRol] = useState("cliente");
   const [query, setQuery] = useState("");
@@ -196,6 +222,9 @@ export default function App() {
   const [tab, setTab] = useState("buscar");
   const [adjQuery, setAdjQuery] = useState("");
   const [adjCiudad, setAdjCiudad] = useState("TODAS");
+  const [sedes, setSedes] = useState([]);
+  const [sedesQuery, setSedesQuery] = useState("");
+  const [sedesFilter, setSedesFilter] = useState("TODOS");
   const [menuOpen, setMenuOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -206,9 +235,12 @@ export default function App() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+  const [sedesUnlocked, setSedesUnlocked] = useState(false);
 
   const inputRef = useRef(null);
   const adjInputRef = useRef(null);
+  const sedesInputRef = useRef(null);
   const passwordRef = useRef(null);
 
   useEffect(() => {
@@ -220,11 +252,12 @@ export default function App() {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    Promise.all([fetchServicios(), fetchCiudades()])
-      .then(([servs, ciuds]) => {
+    Promise.all([fetchServicios(), fetchCiudades(), fetchServiciosSedes()])
+      .then(([servs, ciuds, sedesData]) => {
         if (cancelled) return;
         setPortafolio(servs);
         setCiudades(["TODAS", ...ciuds]);
+        setSedes(sedesData);
       })
       .catch((err) => { if (!cancelled) setLoadError(err.message || "Error de conexión"); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -301,6 +334,18 @@ export default function App() {
     return applySort(items).slice(0, 100);
   }, [adjQuery, adjCiudad, portafolio, sortAlpha, sortPrice, onlyInactive]);
 
+  const resultadosSedes = useMemo(() => {
+    let items = sedes.filter((r) => {
+      const matchPaq = sedesFilter === "TODOS" || (r.codigo || "").toUpperCase().startsWith("PAQ");
+      const matchQuery = !sedesQuery || normalize(r.servicio).includes(normalize(sedesQuery)) || normalize(r.codigo).includes(normalize(sedesQuery));
+      return matchPaq && matchQuery;
+    });
+    return applySort(items);
+  }, [sedesQuery, sedesFilter, sedes, sortAlpha, sortPrice]);
+
+  const totalSedes = sedes.length;
+  const totalPaquetes = useMemo(() => sedes.filter((r) => (r.codigo || "").toUpperCase().startsWith("PAQ")).length, [sedes]);
+
   const servicesInCity = useMemo(() => {
     const currentCiudad = tab === "buscar" ? ciudad : adjCiudad;
     const activePortafolio = portafolio.filter(r => r.active);
@@ -310,27 +355,41 @@ export default function App() {
 
   const tabsDef = [
     ["buscar", <><IconConsult size={16} /> Consultar</>],
+    ["sedes", <><IconPackage size={16} /> Particulares</>],
     ["ajustes", <><IconSettings size={16} /> Ajustes</>],
   ];
 
   const switchTab = (key) => {
     if (key === "ajustes" && rol !== "admin") {
+      setPendingTab("ajustes");
+      setShowPasswordModal(true);
+      return;
+    }
+    if (key === "sedes" && !sedesUnlocked) {
+      setPendingTab("sedes");
       setShowPasswordModal(true);
       return;
     }
     setTab(key);
-    setRol(key === "buscar" ? "cliente" : "admin");
+    setRol(key === "ajustes" ? "admin" : "cliente");
     setMenuOpen(false);
   };
 
+  const PASSWORDS = { ajustes: "Costos2026*", sedes: "Omni2026-*" };
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
-    if (passwordInput === "Costos2026*") {
+    if (passwordInput === PASSWORDS[pendingTab]) {
       setShowPasswordModal(false);
       setPasswordInput("");
       setPasswordError(false);
-      setTab("ajustes");
-      setRol("admin");
+      if (pendingTab === "sedes") {
+        setSedesUnlocked(true);
+        setTab("sedes");
+        setRol("cliente");
+      } else {
+        setTab("ajustes");
+        setRol("admin");
+      }
       setMenuOpen(false);
     } else {
       setPasswordError(true);
@@ -342,6 +401,13 @@ export default function App() {
   const currentCiudadLabel = tab === "buscar"
     ? (ciudad === "TODAS" ? "Red" : ciudad)
     : (adjCiudad === "TODAS" ? "Red" : adjCiudad);
+
+  const headings = {
+    buscar: ["Consultar Servicios", "Explora tarifas y disponibilidad en tiempo real"],
+    sedes: ["Particulares", "Explora tarifas particulares de sedes propias"],
+    ajustes: ["Gestión de Portafolio", "Configura la visibilidad del catálogo nacional"],
+  };
+  const [headTitle, headSub] = headings[tab] || headings.buscar;
 
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -459,10 +525,10 @@ export default function App() {
             <img src={LOGO_B64} alt="Omnisalud" style={{ height: 32, objectFit: "contain", mixBlendMode: "screen" }} />
             <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 12 }}>
               <h1 className="nav-title-text" style={{ fontSize: "clamp(11px, 3.5vw, 14px)", fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2 }}>
-                {tab === "buscar" ? "Consultar Servicios" : "Gestión de Portafolio"}
+                {headTitle}
               </h1>
               <p className="nav-subtitle" style={{ fontSize: "clamp(8px, 2.5vw, 10px)", color: "rgba(255,255,255,0.5)", margin: "2px 0 0", lineHeight: 1.2 }}>
-                {tab === "buscar" ? "Explora tarifas y disponibilidad en tiempo real" : "Configura la visibilidad del catálogo nacional"}
+                {headSub}
               </p>
             </div>
           </div>
@@ -482,11 +548,20 @@ export default function App() {
 
           {/* Desktop badges */}
           <div className="nav-desktop-only" style={{ marginLeft: "auto", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <StatBadge label={`Total Servicios ${currentCiudadLabel}`} value={servicesInCity.toLocaleString()} />
-            <StatBadge label="Ciudades" value={totalCiudades} color="#1aab8a" />
-            <StatBadge label="Total Servicios" value={totalActivos.toLocaleString()} />
-            {rol === "admin" && (
-              <StatBadge label="Inactivos" value={totalInactivos.toLocaleString()} variant="red" />
+            {tab === "sedes" ? (
+              <>
+                <StatBadge label="Total Servicios" value={totalSedes.toLocaleString()} />
+                <StatBadge label="Paquetes" value={totalPaquetes.toLocaleString()} color="#1aab8a" />
+              </>
+            ) : (
+              <>
+                <StatBadge label={`Total Servicios ${currentCiudadLabel}`} value={servicesInCity.toLocaleString()} />
+                <StatBadge label="Ciudades" value={totalCiudades} color="#1aab8a" />
+                <StatBadge label="Total Servicios" value={totalActivos.toLocaleString()} />
+                {rol === "admin" && (
+                  <StatBadge label="Inactivos" value={totalInactivos.toLocaleString()} variant="red" />
+                )}
+              </>
             )}
           </div>
 
@@ -497,7 +572,7 @@ export default function App() {
               border: "1px solid rgba(255,255,255,0.12)", textAlign: "right",
             }}>
               <div style={{ fontSize: "clamp(7px, 2vw, 9px)", fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Total Servicios</div>
-              <div style={{ fontSize: "clamp(12px, 3.5vw, 14px)", fontWeight: 800, color: "#fff" }}>{totalActivos.toLocaleString()}</div>
+              <div style={{ fontSize: "clamp(12px, 3.5vw, 14px)", fontWeight: 800, color: "#fff" }}>{(tab === "sedes" ? totalSedes : totalActivos).toLocaleString()}</div>
             </div>
             <button
               className="hamburger-btn"
@@ -551,9 +626,11 @@ export default function App() {
             </div>
 
             <div className="filter-sheet-section">
-              <div className="filter-sheet-label" style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 8 }}>Ciudad</div>
+              <div className="filter-sheet-label" style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 8 }}>{tab === "sedes" ? "Tipo" : "Ciudad"}</div>
               {tab === "buscar" ? (
                 <CitySelect value={ciudad} onChange={(e) => { setCiudad(e.target.value); closeFilter(); }} ciudades={ciudades} />
+              ) : tab === "sedes" ? (
+                <PaqSelect value={sedesFilter} onChange={(e) => { setSedesFilter(e.target.value); closeFilter(); }} />
               ) : (
                 <CitySelect value={adjCiudad} onChange={(e) => { setAdjCiudad(e.target.value); closeFilter(); }} ciudades={ciudades} />
               )}
@@ -576,12 +653,12 @@ export default function App() {
               <div className="filter-sheet-label" style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginBottom: 8 }}>Estadísticas</div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 auto", background: "#f8fafc", padding: "12px 14px", borderRadius: 8, border: "1px solid #eef1f6", textAlign: "center" }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: "#0c2d6b" }}>{servicesInCity.toLocaleString()}</div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginTop: 2 }}>Servicios {currentCiudadLabel}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#0c2d6b" }}>{(tab === "sedes" ? totalSedes : servicesInCity).toLocaleString()}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginTop: 2 }}>{tab === "sedes" ? "Servicios" : `Servicios ${currentCiudadLabel}`}</div>
                 </div>
                 <div style={{ flex: "1 1 auto", background: "#f8fafc", padding: "12px 14px", borderRadius: 8, border: "1px solid #eef1f6", textAlign: "center" }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: "#1aab8a" }}>{totalCiudades}</div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginTop: 2 }}>Ciudades</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#1aab8a" }}>{tab === "sedes" ? totalPaquetes : totalCiudades}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase", marginTop: 2 }}>{tab === "sedes" ? "Paquetes" : "Ciudades"}</div>
                 </div>
               </div>
             </div>
@@ -641,6 +718,52 @@ export default function App() {
                       <span style={{ fontSize: 12, color: "#6b7a99", fontWeight: 700 }}>MOSTRANDO {resultados.length} RESULTADOS</span>
                     </div>
                     {resultados.map((item, i) => <ServiceCard key={i} item={item} query={query} />)}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === "sedes" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Search bar */}
+              <div style={{ background: "#fff", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(10,40,90,0.04)", border: "1px solid #eef1f6", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", display: "flex" }}><IconSearch size={16} color="#94a3b8" /></span>
+                  <input ref={sedesInputRef} value={sedesQuery} onChange={(e) => setSedesQuery(e.target.value)} placeholder="Buscar por nombre o código..." style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px 12px 42px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, outline: "none", background: "#f8fafc", color: "#0c2d6b" }} />
+                  {sedesQuery && <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}><ClearBtn onClick={() => { setSedesQuery(""); sedesInputRef.current?.focus(); }} /></span>}
+                </div>
+
+                {/* Desktop inline filters */}
+                <div className="filter-desktop" style={{ gap: 12, alignItems: "center" }}>
+                  <div style={{ width: 200 }}>
+                    <PaqSelect value={sedesFilter} onChange={(e) => setSedesFilter(e.target.value)} />
+                  </div>
+                  <SortControls handleSortAlpha={handleSortAlpha} handleSortPrice={handleSortPrice} sortAlpha={sortAlpha} sortPrice={sortPrice} />
+                </div>
+
+                {/* Mobile filter button */}
+                <div className="filter-mobile-btn">
+                  <button className="filter-mob-btn" onClick={() => setFilterOpen(true)} aria-label="Abrir filtros">
+                    <IconFilter size={16} /> Filtros
+                  </button>
+                </div>
+              </div>
+
+              {/* Results */}
+              <div>
+                {resultadosSedes.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>😕</div>
+                    <h3 style={{ margin: 0, color: "#4a5b7a" }}>No encontramos coincidencias</h3>
+                    <p style={{ color: "#8a9ab8", fontSize: 14 }}>Prueba con otros términos o verifica los filtros.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 4px" }}>
+                      <span style={{ fontSize: 12, color: "#6b7a99", fontWeight: 700 }}>MOSTRANDO {resultadosSedes.length} RESULTADOS</span>
+                    </div>
+                    {resultadosSedes.map((item, i) => <ServiceCard key={i} item={item} query={sedesQuery} />)}
                   </>
                 )}
               </div>
@@ -734,7 +857,7 @@ export default function App() {
             <form onSubmit={handlePasswordSubmit}>
               <div style={{ marginBottom: 16 }}>
                 <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 800, color: "#0c2d6b" }}>Acceso Restringido</h2>
-                <p style={{ margin: 0, fontSize: 13, color: "#6b7a99" }}>Ingresa la contraseña para acceder al panel de ajustes</p>
+                <p style={{ margin: 0, fontSize: 13, color: "#6b7a99" }}>Ingresa la contraseña para {pendingTab === "sedes" ? "acceder a Particulares" : "acceder al panel de ajustes"}</p>
               </div>
               <input
                 ref={passwordRef}

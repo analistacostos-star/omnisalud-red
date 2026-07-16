@@ -68,6 +68,22 @@ export async function updateActive(id, active) {
   return rowCount > 0;
 }
 
+export async function findAllSedes() {
+  // Solo servicios con precio particular > 0 (<> 0 excluye también NULL)
+  const { rows } = await query(
+    `SELECT codigo, nombre, precio_particular
+       FROM omn_core_global.core_servicios_sedes_propias
+      WHERE precio_particular <> 0
+      AND codigo != 'PAQ-9'
+      ORDER BY nombre`
+  );
+  return rows.map((r) => ({
+    codigo: r.codigo,
+    servicio: r.nombre,
+    precio: Number(r.precio_particular),
+  }));
+}
+
 export async function findCiudades() {
   const { rows } = await query(
     `SELECT nombre FROM omn_core_global.core_ciudades_nacional ORDER BY nombre`

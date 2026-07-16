@@ -21,6 +21,11 @@ export async function fetchServicios(params = {}) {
   return json.data;
 }
 
+export async function fetchServiciosSedes() {
+  const json = await jsonOrThrow(await fetch(`${BASE}/servicios-sedes`));
+  return json.data;
+}
+
 export async function fetchCiudades() {
   const json = await jsonOrThrow(await fetch(`${BASE}/ciudades`));
   return json.data;

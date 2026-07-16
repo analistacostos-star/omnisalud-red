@@ -19,6 +19,15 @@ router.get("/servicios", async (req, res, next) => {
   }
 });
 
+router.get("/servicios-sedes", async (_req, res, next) => {
+  try {
+    const data = await repo.findAllSedes();
+    res.json({ data, count: data.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/ciudades", async (_req, res, next) => {
   try {
     const data = await repo.findCiudades();
