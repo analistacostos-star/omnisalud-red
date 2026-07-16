@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { LOGO_B64 } from "./data/logo.js";
 import { fetchServicios, fetchServiciosSedes, fetchCiudades, updateServicioActive } from "./api/servicios.js";
+import { COMPOSICION_PAQUETES, HIDDEN_SEDES_CODES } from "./data/paquetes.js";
 
 const normalize = (str) =>
   (str || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -12,6 +13,12 @@ const formatPrecio = (n) =>
 const IconSearch = ({ size = 18, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
     <path d="M10 2a8 8 0 0 1 6.32 12.9l4.38 4.39a1 1 0 0 1-1.41 1.42l-4.39-4.38A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" />
+  </svg>
+);
+
+const IconChevron = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M12 15.5a1 1 0 0 1-.7-.29l-6-6a1 1 0 0 1 1.4-1.42L12 13.1l5.3-5.3a1 1 0 0 1 1.4 1.42l-6 6a1 1 0 0 1-.7.28z" />
   </svg>
 );
 
@@ -89,7 +96,10 @@ function ClearBtn({ onClick }) {
   );
 }
 
-function ServiceCard({ item, query }) {
+function ServiceCard({ item, query, nombrePorCodigo = {} }) {
+  const composicion = COMPOSICION_PAQUETES[item.codigo];
+  const [open, setOpen] = useState(false);
+
   const highlight = (text) => {
     if (!query) return text;
     const idx = normalize(text).indexOf(normalize(query));
@@ -105,31 +115,65 @@ function ServiceCard({ item, query }) {
 
   return (
     <div style={{
-      background: "#fff", borderRadius: 10, padding: "12px 16px", marginBottom: 8,
+      background: "#fff", borderRadius: 10, marginBottom: 8,
       boxShadow: "0 1px 3px rgba(10,40,90,0.05)",
       border: "1px solid #eef1f6", borderLeft: "4px solid #1aab8a",
-      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16
+      overflow: "hidden",
     }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", lineHeight: 1.2, marginBottom: 4 }}>
-          {highlight(item.servicio || item.codigo)}
+      <div
+        onClick={composicion ? () => setOpen((v) => !v) : undefined}
+        style={{
+          padding: "12px 16px", display: "flex", justifyContent: "space-between",
+          alignItems: "center", gap: 16, cursor: composicion ? "pointer" : "default",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", lineHeight: 1.2, marginBottom: 4 }}>
+            {highlight(item.servicio || item.codigo)}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#1aab8a", background: "#e8faf5", borderRadius: 4, padding: "1px 6px", textTransform: "uppercase" }}>
+              {item.codigo}
+            </span>
+            {composicion && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7a99" }}>
+                {composicion.length} servicios
+              </span>
+            )}
+            {item.ciudad && (
+              <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7a99", display: "flex", alignItems: "center", gap: 4 }}>
+                <IconLocation size={12} color="#94a3b8" /> {item.ciudad}
+              </span>
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "#1aab8a", background: "#e8faf5", borderRadius: 4, padding: "1px 6px", textTransform: "uppercase" }}>
-            {item.codigo}
-          </span>
-          {item.ciudad && (
-            <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7a99", display: "flex", alignItems: "center", gap: 4 }}>
-              <IconLocation size={12} color="#94a3b8" /> {item.ciudad}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#0c2d6b", letterSpacing: "-0.01em" }}>
+            {formatPrecio(item.precio)}
+          </div>
+          {composicion && (
+            <span style={{ display: "flex", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s", color: "#94a3b8" }}>
+              <IconChevron size={16} />
             </span>
           )}
         </div>
       </div>
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: "#0c2d6b", letterSpacing: "-0.01em" }}>
-          {formatPrecio(item.precio)}
+
+      {composicion && open && (
+        <div style={{ borderTop: "1px solid #eef1f6", background: "#f8fafc", padding: "8px 16px 10px" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", margin: "4px 0 6px" }}>
+            Composición del paquete
+          </div>
+          {composicion.map((codigo) => (
+            <div key={codigo} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#1aab8a", background: "#e8faf5", borderRadius: 4, padding: "1px 5px", textTransform: "uppercase", flexShrink: 0 }}>
+                {codigo}
+              </span>
+              <span style={{ fontSize: 12, color: "#4a5b7a" }}>{nombrePorCodigo[codigo] || codigo}</span>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -336,6 +380,7 @@ export default function App() {
 
   const resultadosSedes = useMemo(() => {
     let items = sedes.filter((r) => {
+      if (HIDDEN_SEDES_CODES.has(r.codigo)) return false;
       const matchPaq = sedesFilter === "TODOS" || (r.codigo || "").toUpperCase().startsWith("PAQ");
       const matchQuery = !sedesQuery || normalize(r.servicio).includes(normalize(sedesQuery)) || normalize(r.codigo).includes(normalize(sedesQuery));
       return matchPaq && matchQuery;
@@ -343,8 +388,10 @@ export default function App() {
     return applySort(items);
   }, [sedesQuery, sedesFilter, sedes, sortAlpha, sortPrice]);
 
-  const totalSedes = sedes.length;
-  const totalPaquetes = useMemo(() => sedes.filter((r) => (r.codigo || "").toUpperCase().startsWith("PAQ")).length, [sedes]);
+  const nombrePorCodigo = useMemo(() => Object.fromEntries(sedes.map((r) => [r.codigo, r.servicio])), [sedes]);
+  const sedesVisibles = useMemo(() => sedes.filter((r) => !HIDDEN_SEDES_CODES.has(r.codigo)), [sedes]);
+  const totalSedes = sedesVisibles.length;
+  const totalPaquetes = useMemo(() => sedesVisibles.filter((r) => (r.codigo || "").toUpperCase().startsWith("PAQ")).length, [sedesVisibles]);
 
   const servicesInCity = useMemo(() => {
     const currentCiudad = tab === "buscar" ? ciudad : adjCiudad;
@@ -763,7 +810,7 @@ export default function App() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 4px" }}>
                       <span style={{ fontSize: 12, color: "#6b7a99", fontWeight: 700 }}>MOSTRANDO {resultadosSedes.length} RESULTADOS</span>
                     </div>
-                    {resultadosSedes.map((item, i) => <ServiceCard key={i} item={item} query={sedesQuery} />)}
+                    {resultadosSedes.map((item, i) => <ServiceCard key={i} item={item} query={sedesQuery} nombrePorCodigo={nombrePorCodigo} />)}
                   </>
                 )}
               </div>
