@@ -375,7 +375,7 @@ export default function App() {
     setMenuOpen(false);
   };
 
-  const PASSWORDS = { ajustes: "Costos2026*", sedes: "Omni2026-*" };
+  const PASSWORDS = { ajustes: "Costos2026*", sedes: "Omni123" };
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
     if (passwordInput === PASSWORDS[pendingTab]) {
