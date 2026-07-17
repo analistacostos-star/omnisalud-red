@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { LOGO_B64 } from "./data/logo.js";
 import { fetchServicios, fetchServiciosSedes, fetchCiudades, updateServicioActive } from "./api/servicios.js";
 import { COMPOSICION_PAQUETES, HIDDEN_SEDES_CODES } from "./data/paquetes.js";
+import { generarPdfCliente } from "./pdf/exportCliente.js";
 
 const normalize = (str) =>
   (str || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -88,6 +89,12 @@ const IconFilter = ({ size = 18, color = "currentColor" }) => (
   </svg>
 );
 
+const IconPdf = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2l4 4h-4V4zM8.5 13.5c0 .83-.67 1.5-1.5 1.5H6v1.5H5V12h2c.83 0 1.5.67 1.5 1.5zM7 14H6v-1h1v1zm5 1.5c0 .83-.67 1.5-1.5 1.5H9.5V12h2c.83 0 1.5.67 1.5 1.5v2zm-1.5.5H11v-3h-.5v3zM17 13h-1.5v1H17v1h-1.5v1.5H14V12h3v1z" />
+  </svg>
+);
+
 function ClearBtn({ onClick }) {
   return (
     <button onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "0 6px", color: "#6b7a99", fontSize: 20, lineHeight: 1, display: "flex", alignItems: "center" }}>
@@ -96,7 +103,7 @@ function ClearBtn({ onClick }) {
   );
 }
 
-function ServiceCard({ item, query, nombrePorCodigo = {} }) {
+function ServiceCard({ item, query, nombrePorCodigo = {}, selectable = false, checked = false, onToggle }) {
   const composicion = COMPOSICION_PAQUETES[item.codigo];
   const [open, setOpen] = useState(false);
 
@@ -117,7 +124,7 @@ function ServiceCard({ item, query, nombrePorCodigo = {} }) {
     <div style={{
       background: "#fff", borderRadius: 10, marginBottom: 8,
       boxShadow: "0 1px 3px rgba(10,40,90,0.05)",
-      border: "1px solid #eef1f6", borderLeft: "4px solid #1aab8a",
+      border: checked ? "1px solid #1aab8a" : "1px solid #eef1f6", borderLeft: "4px solid #1aab8a",
       overflow: "hidden",
     }}>
       <div
@@ -127,6 +134,16 @@ function ServiceCard({ item, query, nombrePorCodigo = {} }) {
           alignItems: "center", gap: 16, cursor: composicion ? "pointer" : "default",
         }}
       >
+        {selectable && (
+          <input
+            type="checkbox"
+            checked={checked}
+            onClick={(e) => e.stopPropagation()}
+            onChange={onToggle}
+            aria-label={`Seleccionar ${item.servicio || item.codigo}`}
+            style={{ width: 18, height: 18, accentColor: "#1aab8a", cursor: "pointer", flexShrink: 0 }}
+          />
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#0c2d6b", lineHeight: 1.2, marginBottom: 4 }}>
             {highlight(item.servicio || item.codigo)}
@@ -269,6 +286,8 @@ export default function App() {
   const [sedes, setSedes] = useState([]);
   const [sedesQuery, setSedesQuery] = useState("");
   const [sedesFilter, setSedesFilter] = useState("TODOS");
+  const [cliente, setCliente] = useState({ nombre: "", documento: "", correo: "", telefono: "" });
+  const [seleccionados, setSeleccionados] = useState(() => new Set());
   const [menuOpen, setMenuOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -392,6 +411,24 @@ export default function App() {
   const sedesVisibles = useMemo(() => sedes.filter((r) => !HIDDEN_SEDES_CODES.has(r.codigo)), [sedes]);
   const totalSedes = sedesVisibles.length;
   const totalPaquetes = useMemo(() => sedesVisibles.filter((r) => (r.codigo || "").toUpperCase().startsWith("PAQ")).length, [sedesVisibles]);
+
+  const toggleSeleccion = (codigo) => setSeleccionados((prev) => {
+    const next = new Set(prev);
+    next.has(codigo) ? next.delete(codigo) : next.add(codigo);
+    return next;
+  });
+
+  const clienteCompleto = ["nombre", "documento", "correo", "telefono"].every((k) => cliente[k].trim());
+  const puedeExportar = clienteCompleto && seleccionados.size > 0;
+
+  const exportarPdf = () => {
+    if (!puedeExportar) return;
+    const items = sedesVisibles.filter((r) => seleccionados.has(r.codigo));
+    generarPdfCliente(cliente, items, nombrePorCodigo).catch((e) => {
+      console.error(e);
+      alert("No se pudo generar el PDF. Intente de nuevo.");
+    });
+  };
 
   const servicesInCity = useMemo(() => {
     const currentCiudad = tab === "buscar" ? ciudad : adjCiudad;
@@ -797,6 +834,47 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Datos del cliente + exportar */}
+              <div style={{ background: "#fff", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(10,40,90,0.04)", border: "1px solid #eef1f6" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7a99", textTransform: "uppercase" }}>Datos del cliente</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#6b7a99" }}>
+                    {seleccionados.size} servicio{seleccionados.size === 1 ? "" : "s"} seleccionado{seleccionados.size === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                  {[
+                    ["nombre", "Nombre Cliente", "text"],
+                    ["documento", "Número de Documento", "text"],
+                    ["correo", "Correo electrónico", "email"],
+                    ["telefono", "Número de teléfono", "tel"],
+                  ].map(([key, label, type]) => (
+                    <input
+                      key={key}
+                      type={type}
+                      value={cliente[key]}
+                      onChange={(e) => setCliente((c) => ({ ...c, [key]: e.target.value }))}
+                      placeholder={label}
+                      style={{ flex: "1 1 180px", minWidth: 0, boxSizing: "border-box", padding: "12px 14px", borderRadius: 8, border: "1.5px solid #eef1f6", fontSize: 14, outline: "none", background: "#f8fafc", color: "#0c2d6b" }}
+                    />
+                  ))}
+                  <button
+                    onClick={exportarPdf}
+                    disabled={!puedeExportar}
+                    aria-label="Generar PDF"
+                    title={!clienteCompleto ? "Complete todos los campos" : seleccionados.size === 0 ? "Seleccione al menos un servicio" : "Generar PDF"}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      width: 46, height: 46, borderRadius: 8, border: "none",
+                      color: "#fff", background: puedeExportar ? "#1aab8a" : "#c3ccdb",
+                      cursor: puedeExportar ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    <IconPdf size={20} />
+                  </button>
+                </div>
+              </div>
+
               {/* Results */}
               <div>
                 {resultadosSedes.length === 0 ? (
@@ -810,7 +888,7 @@ export default function App() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 4px" }}>
                       <span style={{ fontSize: 12, color: "#6b7a99", fontWeight: 700 }}>MOSTRANDO {resultadosSedes.length} RESULTADOS</span>
                     </div>
-                    {resultadosSedes.map((item, i) => <ServiceCard key={i} item={item} query={sedesQuery} nombrePorCodigo={nombrePorCodigo} />)}
+                    {resultadosSedes.map((item, i) => <ServiceCard key={i} item={item} query={sedesQuery} nombrePorCodigo={nombrePorCodigo} selectable checked={seleccionados.has(item.codigo)} onToggle={() => toggleSeleccion(item.codigo)} />)}
                   </>
                 )}
               </div>
