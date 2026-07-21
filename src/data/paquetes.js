@@ -14,5 +14,5 @@ export const COMPOSICION_PAQUETES = {
 //  para que sigan siendo consultables desde el back).
 export const HIDDEN_SEDES_CODES = new Set([
   "PAQ-9", "FN-11", "OPTO-14", "LAB-98", "LAB-97", "OPTO-11", "MD-5",
-  "LAB-4", "MD-4", "FN-1", "OPTO-1", "LAB-7", "LAB-3", "LAB-58", "OPTO-2",
+  "MD-4", "LAB-58", "OPTO-2",
 ]);
