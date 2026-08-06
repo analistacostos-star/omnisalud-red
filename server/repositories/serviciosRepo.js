@@ -83,11 +83,13 @@ export async function findAllSedes() {
   }));
 }
 
+const CIUDADES_EXCLUIDAS = new Set(["BARRANQUILLA 5", "BUCARAMANGA", "MANIZALES 2"]);
+
 export async function findCiudades() {
   const { rows } = await query(
     `SELECT nombre FROM omn_core_global.core_ciudades_nacional ORDER BY nombre`
   );
-  return rows.map((r) => r.nombre);
+  return rows.map((r) => r.nombre).filter((c) => !CIUDADES_EXCLUIDAS.has(c));
 }
 
 export async function countActive() {
