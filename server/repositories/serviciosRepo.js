@@ -28,6 +28,8 @@ export async function findAll({ ciudad, q, codigo, onlyActive = false, limit } =
   const where = [];
   const values = [];
 
+  where.push(`c.nombre NOT IN ('BARRANQUILLA 5', 'BUCARAMANGA', 'MANIZALES 2')`);
+
   if (onlyActive) where.push("sn.active = 1");
 
   if (ciudad && ciudad !== "TODAS") {
