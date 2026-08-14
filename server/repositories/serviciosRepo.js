@@ -1,5 +1,24 @@
 import { query } from "../db.js";
 
+// ── In-memory TTL cache ───────────────────────────────────────
+// El catálogo cambia poco; esto evita golpear la BD en cada visita.
+// Se invalida al tocar `updateActive` y se expira por TTL por si la
+// BD cambia fuera de la app.
+const TTL_MS = 30_000;
+const cacheStore = new Map();
+
+async function cached(key, fn) {
+  const hit = cacheStore.get(key);
+  if (hit && Date.now() - hit.t < TTL_MS) return hit.value;
+  const value = await fn();
+  cacheStore.set(key, { t: Date.now(), value });
+  return value;
+}
+
+function invalidateCache() {
+  cacheStore.clear();
+}
+
 const BASE_SELECT = `
   SELECT
     sn.id              AS id,
@@ -25,41 +44,44 @@ function normalizeRow(r) {
 }
 
 export async function findAll({ ciudad, q, codigo, onlyActive = false, limit } = {}) {
-  const where = [];
-  const values = [];
+  const key = `findAll:${JSON.stringify({ ciudad, q, codigo, onlyActive, limit })}`;
+  return cached(key, async () => {
+    const where = [];
+    const values = [];
 
-  where.push(`c.nombre NOT IN ('BARRANQUILLA 5', 'BUCARAMANGA', 'MANIZALES 2')`);
+    where.push(`c.nombre NOT IN ('BARRANQUILLA 5', 'BUCARAMANGA', 'MANIZALES 2')`);
 
-  if (onlyActive) where.push("sn.active = 1");
+    if (onlyActive) where.push("sn.active = 1");
 
-  if (ciudad && ciudad !== "TODAS") {
-    values.push(ciudad);
-    where.push(`c.nombre = $${values.length}`);
-  }
+    if (ciudad && ciudad !== "TODAS") {
+      values.push(ciudad);
+      where.push(`c.nombre = $${values.length}`);
+    }
 
-  if (codigo) {
-    values.push(codigo);
-    where.push(`sn.servicio_codigo = $${values.length}`);
-  }
+    if (codigo) {
+      values.push(codigo);
+      where.push(`sn.servicio_codigo = $${values.length}`);
+    }
 
-  if (q) {
-    values.push(`%${q.toLowerCase()}%`);
-    where.push(
-      `(LOWER(sp.nombre) LIKE $${values.length} OR LOWER(sn.servicio_codigo) LIKE $${values.length})`
-    );
-  }
+    if (q) {
+      values.push(`%${q.toLowerCase()}%`);
+      where.push(
+        `(LOWER(sp.nombre) LIKE $${values.length} OR LOWER(sn.servicio_codigo) LIKE $${values.length})`
+      );
+    }
 
-  let sql = BASE_SELECT;
-  if (where.length) sql += `\n  WHERE ${where.join(" AND ")}`;
-  sql += `\n  ORDER BY c.nombre, sp.nombre`;
+    let sql = BASE_SELECT;
+    if (where.length) sql += `\n  WHERE ${where.join(" AND ")}`;
+    sql += `\n  ORDER BY c.nombre, sp.nombre`;
 
-  if (limit && Number.isFinite(limit) && limit > 0) {
-    values.push(Math.min(Number(limit), 5000));
-    sql += `\n  LIMIT $${values.length}`;
-  }
+    if (limit && Number.isFinite(limit) && limit > 0) {
+      values.push(Math.min(Number(limit), 5000));
+      sql += `\n  LIMIT $${values.length}`;
+    }
 
-  const { rows } = await query(sql, values);
-  return rows.map(normalizeRow);
+    const { rows } = await query(sql, values);
+    return rows.map(normalizeRow);
+  });
 }
 
 export async function updateActive(id, active) {
@@ -67,51 +89,60 @@ export async function updateActive(id, active) {
     "UPDATE omn_core_global.core_servicios_nacional SET active = $1 WHERE id = $2",
     [active ? 1 : 0, id]
   );
+  if (rowCount > 0) invalidateCache();
   return rowCount > 0;
 }
 
 export async function findAllSedes() {
-  // Solo servicios con precio particular > 0 (<> 0 excluye también NULL)
-  const { rows } = await query(
-    `SELECT codigo, nombre, precio_particular
-       FROM omn_core_global.core_servicios_sedes_propias
-      WHERE precio_particular <> 0
-      ORDER BY nombre`
-  );
-  return rows.map((r) => ({
-    codigo: r.codigo,
-    servicio: r.nombre,
-    precio: Number(r.precio_particular),
-  }));
+  return cached("findAllSedes", async () => {
+    // Solo servicios con precio particular > 0 (<> 0 excluye también NULL)
+    const { rows } = await query(
+      `SELECT codigo, nombre, precio_particular
+         FROM omn_core_global.core_servicios_sedes_propias
+        WHERE precio_particular <> 0
+        ORDER BY nombre`
+    );
+    return rows.map((r) => ({
+      codigo: r.codigo,
+      servicio: r.nombre,
+      precio: Number(r.precio_particular),
+    }));
+  });
 }
 
 export async function findAllSedesPymes() {
-  // Solo servicios con precio pymes > 0 (<> 0 excluye también NULL)
-  const { rows } = await query(
-    `SELECT codigo, nombre, precio_pymes
-       FROM omn_core_global.core_servicios_sedes_propias
-      WHERE precio_pymes <> 0
-      ORDER BY nombre`
-  );
-  return rows.map((r) => ({
-    codigo: r.codigo,
-    servicio: r.nombre,
-    precio: Number(r.precio_pymes),
-  }));
+  return cached("findAllSedesPymes", async () => {
+    // Solo servicios con precio pymes > 0 (<> 0 excluye también NULL)
+    const { rows } = await query(
+      `SELECT codigo, nombre, precio_pymes
+         FROM omn_core_global.core_servicios_sedes_propias
+        WHERE precio_pymes <> 0
+        ORDER BY nombre`
+    );
+    return rows.map((r) => ({
+      codigo: r.codigo,
+      servicio: r.nombre,
+      precio: Number(r.precio_pymes),
+    }));
+  });
 }
 
 const CIUDADES_EXCLUIDAS = new Set(["BARRANQUILLA 5", "BUCARAMANGA", "MANIZALES 2"]);
 
 export async function findCiudades() {
-  const { rows } = await query(
-    `SELECT nombre FROM omn_core_global.core_ciudades_nacional ORDER BY nombre`
-  );
-  return rows.map((r) => r.nombre).filter((c) => !CIUDADES_EXCLUIDAS.has(c));
+  return cached("findCiudades", async () => {
+    const { rows } = await query(
+      `SELECT nombre FROM omn_core_global.core_ciudades_nacional ORDER BY nombre`
+    );
+    return rows.map((r) => r.nombre).filter((c) => !CIUDADES_EXCLUIDAS.has(c));
+  });
 }
 
 export async function countActive() {
-  const { rows } = await query(
-    `SELECT COUNT(*) AS total FROM omn_core_global.core_servicios_nacional WHERE active = 1`
-  );
-  return Number(rows[0]?.total || 0);
+  return cached("countActive", async () => {
+    const { rows } = await query(
+      `SELECT COUNT(*) AS total FROM omn_core_global.core_servicios_nacional WHERE active = 1`
+    );
+    return Number(rows[0]?.total || 0);
+  });
 }
