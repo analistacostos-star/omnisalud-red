@@ -85,6 +85,21 @@ export async function findAllSedes() {
   }));
 }
 
+export async function findAllSedesPymes() {
+  // Solo servicios con precio pymes > 0 (<> 0 excluye también NULL)
+  const { rows } = await query(
+    `SELECT codigo, nombre, precio_pymes
+       FROM omn_core_global.core_servicios_sedes_propias
+      WHERE precio_pymes <> 0
+      ORDER BY nombre`
+  );
+  return rows.map((r) => ({
+    codigo: r.codigo,
+    servicio: r.nombre,
+    precio: Number(r.precio_pymes),
+  }));
+}
+
 const CIUDADES_EXCLUIDAS = new Set(["BARRANQUILLA 5", "BUCARAMANGA", "MANIZALES 2"]);
 
 export async function findCiudades() {

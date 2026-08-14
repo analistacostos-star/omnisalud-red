@@ -26,6 +26,11 @@ export async function fetchServiciosSedes() {
   return json.data;
 }
 
+export async function fetchServiciosSedesPymes() {
+  const json = await jsonOrThrow(await fetch(`${BASE}/servicios-sedes-pymes`));
+  return json.data;
+}
+
 export async function fetchCiudades() {
   const json = await jsonOrThrow(await fetch(`${BASE}/ciudades`));
   return json.data;
