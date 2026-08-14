@@ -134,9 +134,6 @@ export default function App() {
           {s.loading && (
             <div style={{ background: "#e8faf5", color: "#0a5c4a", padding: "12px 16px", borderRadius: 8, marginBottom: 16, fontSize: 14, fontWeight: 700 }}>Cargando tarifas…</div>
           )}
-          {s.loadError && (
-            <div style={{ background: "#fef2f2", color: "#b91c1c", padding: "12px 16px", borderRadius: 8, marginBottom: 16, fontSize: 14, fontWeight: 700 }}>{s.loadError}</div>
-          )}
 
           {tab === "buscar" && <RedNacionalView s={s} />}
           {tab === "sedes-propias" && <SedesPropiasView s={s} />}

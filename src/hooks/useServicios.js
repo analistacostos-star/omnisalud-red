@@ -26,7 +26,6 @@ export function useServicios() {
   const [portafolio, setPortafolio] = useState([]);
   const [ciudades, setCiudades] = useState(["TODAS"]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
 
   // ── Ajustes ──
   const [adjQuery, setAdjQuery] = useState("");
@@ -61,7 +60,7 @@ export function useServicios() {
         setSedes(sedesData);
         setPymes(pymesData);
       })
-      .catch((err) => { if (!cancelled) setLoadError(err.message || "Error de conexión"); })
+      .catch((err) => { if (!cancelled) console.error(err); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -160,7 +159,7 @@ export function useServicios() {
   };
 
   return {
-    query, setQuery, ciudad, setCiudad, portafolio, ciudades, loading, loadError,
+    query, setQuery, ciudad, setCiudad, portafolio, ciudades, loading,
     adjQuery, setAdjQuery, adjCiudad, setAdjCiudad, onlyInactive, setOnlyInactive,
     sedes, sedesQuery, setSedesQuery, sedesFilter, setSedesFilter,
     cliente, setCliente, seleccionados, toggleSeleccion, puedeExportar, clienteCompleto, exportarPdf,
